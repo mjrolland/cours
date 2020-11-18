@@ -1,0 +1,1790 @@
+---
+title: "Régression linéaire appliquée"
+subtitle: "Epidémiologie environnementale"
+author: "M. Rolland"
+institute: "INSERM"
+date: "26-11-2020"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(see)
+library(knitr)
+library(kableExtra)
+library(patchwork)
+library(ggforce)
+library(grid)
+library(broom)
+library(performance)
+```
+
+
+```{r}
+# donnees pour modele
+set.seed(113)
+N <- 750
+model_data <- tibble(
+  id = 1:N,
+  sexe = sample(c("M", "F"), size = N, replace = TRUE, prob = c(0.53, 0.47)),
+  age_m = round(rnorm(n = N, mean = 29, sd = 3.5)),
+  imc_m = round(rnorm(n = N, mean= 24, sd = 3.5), 1),
+  ville = sample(c("Paris", "Grenoble", "Toulouse"), size = N, replace = TRUE, prob = c(0.7, 0.1, 0.2)),
+  tabac = sample(c(0, 1), size = N, replace = TRUE, prob = c(0.8, 0.2)),
+  age_gest = round(rnorm(n = N, mean = 40, sd = 1), 1),
+  bpa = exp(rnorm(n = N, mean = 0.75, sd = 0.85))) %>%
+  mutate(
+    sexe = relevel(factor(sexe), ref = "M"),
+    ville = relevel(factor(ville), ref = "Paris"),
+    tabac = relevel(factor(tabac), ref = "0"),
+    tabac2 = ifelse(tabac == 1, "Fumeuse", "Non-fumeuse")
+  )
+```
+
+
+```{r}
+# dummy vars
+model_data <- model_data %>%
+  mutate(
+    sexe_f = ifelse(sexe == "F", 1, 0),
+    ville_t = ifelse(ville == "Toulouse", 1, 0),
+    ville_g = ifelse(ville == "Grenoble", 1, 0),
+    tabac_f = ifelse(tabac == "1", 1, 0)
+  )
+```
+
+```{r}
+set.seed(113)
+# randomly add some NA
+na_x <- sample(1:nrow(model_data), size = 5, replace = TRUE)
+na_y <- sample(1:ncol(model_data), size = 5, replace = TRUE)
+model_data[na_x, na_y] <- NA
+```
+
+
+```{r}
+# poids naissance moyen
+poids_naiss_moy <- 3300
+# intercept
+int <- -(6277 - poids_naiss_moy)
+# beta female
+b_sexe_f <- -80
+# beta age mere
+b_age_m <- -3
+# beta age gest
+b_age_gest <- 150
+# beta imc mere
+b_imc_m <- 60
+# beta toulouse
+b_ville_t <- 50
+b_ville_t2 <- 500
+# beta grenoble
+b_ville_g <- -20
+b_ville_g2 <- -200
+# beta tabac
+b_tabac_f <- -200 # exagéré pour l'exemple
+# bpa
+b_bpa <- -100
+# gamma inter tabac * sexe
+g_bpa_sex <- -220
+
+# error variability
+sigma <- 400
+
+```
+
+```{r}
+# outcome
+set.seed(113)
+model_data <- model_data %>%
+  mutate(
+    poids_naiss = int + b_sexe_f * sexe_f + b_age_m * age_m + b_age_gest * age_gest + 
+      b_imc_m * imc_m + b_ville_t * ville_t + b_ville_g * ville_g + b_tabac_f * tabac_f + 
+      b_bpa * log(bpa) + (b_bpa - g_bpa_sex) * sexe_f * log(bpa) + rnorm(n = N, mean = 0, sd = 400),
+    poids_naiss = round(poids_naiss),
+    poids_naiss2 = poids_naiss + b_ville_t2 * ville_t + b_ville_g2 * ville_g
+  )
+
+```
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Préambule
+
+---
+
+# Notions préliminaires
+
+--
+
+* Equation d'une droite
+
+--
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+# data droite
+df <- tibble(
+  x = 0:10,
+  y = 3 + 2*x
+)
+
+# tracer droite
+p <- ggplot(df, aes(x, y)) +
+  geom_line() +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  ylim(c(0, 25)) +
+  theme(
+    text = element_text(size = 18),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = "y = a + b * x"
+  ) +
+  scale_x_continuous(breaks = c(0), labels = c("0"), limits = c(-0.5, 10)) 
+
+p
+```
+
+---
+
+# Notions préliminaires
+
+* Equation d'une droite
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+# tracer droite
+p <- p +
+  geom_segment(
+    x = 3,
+    y = 9,
+    xend = 7,
+    yend = 9,
+    col = "blue"
+  ) +
+  geom_curve(
+    x = 4,
+    y = 9,
+    xend = 3.8,
+    yend = 10.6,
+    col = "blue"
+  ) +
+  geom_text(
+    x = 5,
+    y = 11,
+    label = "b",
+    col = "blue",
+    size = 10
+  ) +
+  geom_text(
+    x = -0.5,
+    y = 3,
+    label = "a",
+    col = "red",
+    size = 10
+  )
+
+p
+
+```
+
+
+---
+
+# Notions préliminaires
+
+* Distribution, moyenne, écart-type
+
+--
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+# donnees normales
+set.seed(113)
+df <- tibble(x = rnorm(1000))
+
+# hist
+p <- ggplot(df, aes(x)) +
+  geom_histogram(alpha = 0.5) +
+  theme(
+    text = element_text(size = 18),
+    panel.background = element_blank(),
+    panel.grid = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_blank()
+  )
+
+p
+```
+
+---
+
+# Notions préliminaires
+
+* Distribution, moyenne, écart-type
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+# hist
+p <- p +
+  geom_vline(aes(xintercept = mean(x)), col = "red", lwd = 1.5, alpha = 0.7)
+
+p
+```
+
+---
+
+# Notions préliminaires
+
+* Distribution, moyenne, écart-type
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+# hist
+p <- p + 
+  geom_vline(aes(xintercept = sd(x)), col = "blue", lwd = 1.5, alpha = 0.7) +
+  geom_vline(aes(xintercept = -sd(x)), col = "blue", lwd = 1.5, alpha = 0.7) + 
+  geom_segment(
+    y = 60,
+    yend = 60,
+    arrow = arrow(length = unit(0.03, "npc"), ends = "both"),
+    col = "blue",
+    aes(x = sd(x) - 0.1,
+        xend = mean(x) + 0.1)
+  ) 
+
+p
+```
+
+---
+
+# Données exemple
+
+* Données mesures poids à la naissance
+* Autres variables: sexe, age de la mère, ville, etc
+* 1 ligne par enfant
+* 1 colonne par variable
+
+--
+
+```{r}
+tab <- model_data %>%
+  select(id, poids_naiss, sexe, age_m, imc_m, ville, tabac, age_gest, bpa) 
+
+tab %>%
+  kbl() %>%
+  kable_styling()
+```
+
+---
+
+# Plan
+
+* Présentation, composantes du modèle
+* Différents types de modèles: 
+  * Univarié X continue
+  * Univarié X catégorielle
+  * Multivarié
+* Interaction
+* Diagnostique modèle
+* Prédiction
+* Résumé
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Introduction
+
+---
+
+# Objectifs de la régression linéaire
+
+--
+
+* <p style="color:#f92672;">TESTER</p> Tester l'association entre un trait de santé et un facteur environnemental en controllant pour d'autres facteurs
+
+--
+
+<br>
+
+* <p style="color:#f92672;">ESTIMER</p> Quantifier cette associatoin
+
+--
+
+<br>
+
+* <p style="color:#f92672;">PREDIRE</p> Prédire le phénomène de santé en fonction d'autres caractéristiques observées
+
+---
+
+# Principe
+
+--
+
+* Relation entre 2 plus de variables
+
+--
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p <- ggplot(model_data, aes(x = log(bpa),
+                       y = poids_naiss)) +
+  geom_point() +
+  theme(    
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+    ) +
+  labs(y = "Poids (g)",
+       x = "log(BPA)")
+
+p
+```
+
+---
+
+# Principe
+
+* Relation entre 2 plus de variables
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p <- p +
+  geom_smooth(method = "lm", se = F)
+
+p
+```
+
+
+---
+
+# Principe
+
+* Relation entre 2 plus de variables
+
+--
+
+* Relations linéaires
+
+--
+
+<br>
+
+```{r}
+set.seed(113)
+N <- 500
+df <- tibble(
+  x = runif(n = N, min = 0, max = 300),
+  y_lin = 3 + 2 * x + rnorm(n = N, sd = 120),
+  y_nlin1 = sin(x/40) + rnorm(n = N, sd = 0.3),
+  y_nlin2 = (x)^4 + rnorm(n = N, sd = 500000000)
+)
+
+p1 <- ggplot(df, aes(x, y_lin)) +
+  geom_point() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    x = "x",
+    y = "y"
+  )
+
+p1_s <- p1 + geom_smooth(method = "lm", se = F)
+
+p2 <- ggplot(df, aes(x, y_nlin1)) +
+  geom_point() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    x = "x",
+    y = "y"
+  )
+
+p2_s <- p2 + geom_smooth(method = "lm", se = F)
+
+p3 <- ggplot(df, aes(x, y_nlin2)) +
+  geom_point() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    x = "x",
+    y = "y"
+  )
+
+p3_s <- p3 + geom_smooth(method = "lm", se = F)
+
+```
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 + plot_spacer() + plot_spacer()
+```
+
+---
+
+# Principe
+
+* A faire qd je présente
+
+* Relations linéaires
+
+<br>
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1_s + plot_spacer() + plot_spacer()
+```
+
+---
+
+# Principe
+
+* A faire qd je présente
+
+* Relations linéaires
+
+<br>
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1_s + p2 + plot_spacer()
+```
+
+---
+
+# Principe
+
+* A faire qd je présente
+
+* Relations linéaires
+
+<br>
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1_s + p2 + p3
+```
+
+---
+
+# Principe
+
+* A faire qd je présente
+
+* Relations linéaires
+
+<br>
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1_s + p2_s + p3
+```
+
+
+---
+
+# Principe
+
+* A faire qd je présente
+
+* Relations linéaires
+
+<br>
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1_s + p2_s + p3_s
+```
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Composantes du modèle
+
+---
+
+# Le modèle de régression linéaire
+
+--
+
+<br>
+
+<p style="font-size:40px; font-style: italic;">E(Y) = &alpha; + &beta; * X</p>
+
+<br>
+
+--
+
+* <body>
+<span style="color:#f92672">Y</span>
+<span style="color:#000000">: Variable à expliquer</span>
+</body>
+
+* <body>
+<span style="color:#f92672">X</span>
+<span style="color:#000000">: Variable explicative, covariable</span>
+</body>
+
+* <body>
+<span style="color:#f92672">E(Y)</span>
+<span style="color:#000000">: Espérance de Y (Expected value, ici une moyenne)</span>
+</body>
+
+* <body>
+<span style="color:#f92672">&alpha;, &beta;</span>
+<span style="color:#000000">: Paramètres du modèle</span>
+</body>
+
+---
+
+# Le modèle de régression linéaire
+
+--
+
+<br>
+
+<p style="font-size:40px; font-style: italic;">E(Y) = &alpha; + &beta;<sub>1</sub> * X<sub>1</sub> + &beta;<sub>2</sub> * X<sub>2</sub> + ... + &beta;<sub>p</sub> * X<sub>p</sub></p>
+
+<br>
+
+--
+
+* Univarié = 1 covariable / multivarié = >1 covariable
+
+--
+
+* Mesuré (entre dans le modèle)
+
+  * <body>
+  <span style="color:#f92672">Y</span>
+  <span style="color:#000000">: variable à expliquer</span>
+  </body>
+  
+  * <body>
+  <span style="color:#f92672">X<sub>1</sub>, X<sub>2</sub>, ... , X<sub>p</sub></span>
+  <span style="color:#000000">: covariables</span>
+  </body>
+
+--
+
+* Calculé (sort du modèle)
+
+  * <body>
+  <span style="color:#f92672">E(Y)</span>
+  <span style="color:#000000">: Espérance de Y</span>
+  </body>
+  
+  * <body>
+  <span style="color:#f92672">&alpha;, &beta;<sub>1</sub>, &beta;<sub>2</sub>, ..., &beta;<sub>p</sub></span>
+  <span style="color:#000000">: paramètres du modèle</span>
+  </body>
+
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# La variable à expliquer: $Y$
+
+---
+
+# La variable à expliquer: $Y$
+
+--
+
+* Mesure d'un paramètre de santé
+
+--
+
+* Mesure **continue**
+
+--
+
+* Préférable: distribution normale
+
+--
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+ggplot(model_data, aes(x = poids_naiss)) +
+  geom_histogram() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 18),
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = "Distribution poids de naissance",
+    x = "Poids (g)",
+    y = "Freq."
+  )
+```
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Les covariables: $X_i$
+
+---
+
+# Les covariables: $X_i$
+
+* Mesures avec lesquelles on va mettre en relation le paramètre de santé
+
+--
+
+* Plusieurs types possibles
+
+--
+
+  * Continu
+  * Binaire
+  * Catégoriel
+
+--
+
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 <- ggplot(model_data, aes(x = imc_m)) +
+  geom_histogram() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(x = "IMC (kg/m²)",
+       title = "Distribution IMC maternel") 
+
+p2 <- ggplot(model_data, aes(x = sexe)) +
+  geom_bar() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(x = "",
+       title = "Fréquence sexe")
+
+p3 <- ggplot(model_data, aes(x = ville)) +
+  geom_bar() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(x = "",
+       title = "Fréquence ville")
+
+```
+
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 + p2 + p3
+```
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Modèle univarié, covariable continue
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+* Y: continu/normal
+
+--
+
+* X: continu
+
+--
+
+* On veut savoir s'il y a une relation **LINEAIRE** entre X et Y
+
+--
+
+<br>
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p_ref <- ggplot(model_data, aes(x = imc_m,
+                                y = poids_naiss)) +
+  geom_point() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 18)
+  ) +
+  labs(
+    title = "Poids de naissance VS IMC maternel",
+    x = "IMC (kg/m²)",
+    y = "Poids (g)"
+  )
+```
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p_ref
+```
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p1 <- ggplot(model_data, aes(x = imc_m,
+                             y = poids_naiss)) +
+  geom_point(alpha = 0.2) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 18)
+  ) +
+  labs(
+    title = "Poids de naissance VS IMC maternel",
+    x = "IMC (kg/m²)",
+    y = "Poids (g)"
+  )
+
+p1
+```
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p2 <- p1 + geom_smooth(method = "lm", se = F)
+p2
+```
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p3 <- p2 + 
+  geom_text(
+    x = 32,
+    y = 5500,
+    label = "E(Y)",
+    color = "blue",
+    size = 15
+  )
+
+p3
+```
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p4 <- p3 +
+  geom_segment(
+    x = 25,
+    y = 4330,
+    xend = 30,
+    yend = 4330,
+    col = "red"
+  ) +
+  geom_curve(
+    x = 28.5,
+    y = 4550,
+    xend = 29,
+    yend = 4330,
+    col = "red",
+    curvature = -0.5
+  ) +
+  annotate(
+    "text",
+    x = 32,
+    y = 4400,
+    label = expression(beta),
+    col = "red",
+    size = 15
+  )
+
+p4
+```
+
+---
+
+# $Y$ vs $X$ continu: IMC maternel
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p5 <- p4 +
+  geom_segment(
+    x = 17,
+    y = 3300,
+    xend = 14,
+    yend = 3200,
+    arrow = arrow()
+  ) +
+  annotate(
+    "text",
+    x = 18,
+    y = 3500,
+    label = expression(alpha),
+    size = 15
+  )
+
+
+p5
+```
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Interprétation
+
+---
+
+# Interprétation des paramètres: l'intercept $\alpha$
+
+<p style="font-size:40px; font-style: italic;">E(Y) = &alpha; + &beta; * X</p>
+
+<br>
+
+--
+
+* valeur de Y prédite par le modèle pour X = 0
+* <=> ordonnée à l'origine
+
+--
+
+<br>
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p <- ggplot(model_data, aes(x = imc_m,
+                            y = poids_naiss)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F, fullrange = T) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 18),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks = element_blank()
+  ) +
+  xlim(c(-1, 35)) +
+  ylim(c(0, 6000)) +
+  labs(
+    title = "Poids de naissance VS IMC maternel",
+    x = "IMC (kg/m²)",
+    y = "Poids (g)"
+  )
+
+p
+```
+
+
+---
+
+# Interprétation des paramètres: l'intercept $\alpha$
+
+<p style="font-size:40px; font-style: italic;">E(Y) = &alpha; + &beta; * X</p>
+
+<br>
+
+* valeur de Y prédite par le modèle pour X = 0
+* <=> ordonnée à l'origine
+
+<br>
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p <- p +
+  geom_text(x = 10, y = 2000, label = "α", size = 10) +
+  geom_segment(x = 9,
+               y = 2000,
+               xend = 1,
+               yend = 2600,
+               arrow = arrow(length = unit(0.03, "npc")))
+
+p
+```
+
+
+---
+
+# Interprétation des paramètres: l'intercept $\alpha$
+
+<p style="font-size:40px; font-style: italic;">E(Y) = &alpha; + &beta; * X</p>
+
+<br>
+
+* valeur de Y prédite par le modèle pour X = 0
+* <=> ordonnée à l'origine
+
+<p style="color:#FF0000;">!!! Interprétation !!!</p>
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p <- p +
+  geom_text(x = 10, y = 2000, label = "α", size = 10) +
+  geom_segment(x = 9,
+               y = 2000,
+               xend = 1,
+               yend = 2600,
+               arrow = arrow(length = unit(0.03, "npc")))
+
+p
+```
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+* Pente de la droite entre X et E(Y)
+
+* Incrément de 1 unité de X => incrément de 1 unité de E(Y)
+
+--
+
+```{r fig.height = 5, out.width = "50%", dpi=300, warning = F, message = F}
+p_z <- p2 +
+  coord_cartesian(
+    xlim = c(24.5, 26.5),
+    ylim  = c(4200, 4500))
+p_z
+```
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+* Pente de la droite entre X et E(Y)
+
+* Incrément de 1 unité de X => incrément de 1 unité de E(Y)
+
+```{r fig.height = 5, out.width = "50%", dpi=300, warning = F, message = F}
+p_z2 <- p_z +
+  geom_segment(
+    x = 25,
+    y = 4360,
+    xend = 26,
+    yend = 4360,
+    arrow = arrow(length = unit(0.03, "npc"))
+  ) +
+  geom_text(
+    x = 25.5,
+    y = 4310,
+    label = "+1",
+    size = 15
+  )
+p_z2
+```
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+* Pente de la droite entre X et E(Y)
+
+* Incrément de 1 unité de X => incrément de 1 unité de E(Y) (Unité de $\beta$ = unité de Y/X)
+
+```{r fig.height = 5, out.width = "50%", dpi=300, warning = F, message = F}
+p_z3 <- p_z2 +
+  geom_segment(
+    x = 26,
+    y = 4360,
+    xend = 26,
+    yend = 4420,
+    arrow = arrow(length = unit(0.03, "npc")),
+    col = "red"
+  ) +
+  annotate(
+    "text",
+    x = 26.2,
+    y = 4390,
+    label = expression("+    ", beta),
+    size = 15,
+    col = "red"
+  )
+p_z3
+```
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+```{r}
+set.seed(113)
+df <- df %>%
+  mutate(
+    y_lin2 =  3 - 4 * x + rnorm(n = N, sd = 120),
+    y_lin3 =  -1 + 0.1 * x + rnorm(n = N, sd = 120),
+    y_lin4 = 3 - 1 * x +  rnorm(n = N, sd = 120),
+    y_lin5 = 3 - 5 * x +  rnorm(n = N, sd = 120),
+  )
+```
+
+```{r}
+p1 <- ggplot(df, aes(x, y_lin)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    title = expression(beta~"> 0"),
+    x = "x",
+    y = "y"
+  )
+
+p2 <- ggplot(df, aes(x, y_lin2)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    title = expression(beta~"< 0"),
+    x = "x",
+    y = "y"
+  )
+
+p3 <- ggplot(df, aes(x, y_lin3)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    title = expression(beta~"~ 0"),
+    x = "x",
+    y = "y"
+  )
+
+p4 <- ggplot(df, aes(x, y_lin4)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    title = "β1",
+    x = "x",
+    y = "y"
+  ) +
+  ylim(c(-1200, 300))
+
+p5 <- ggplot(df, aes(x, y_lin5)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    text = element_text(size = 25)
+  ) +
+  labs(
+    title = "β2",
+    x = "x",
+    y = "y"
+  )+
+  ylim(c(-1200, 300))
+```
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 + plot_spacer() + plot_spacer()
+```
+
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 + p2 + plot_spacer()
+```
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 + p2 + p3
+```
+
+--
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p4 + p5 + plot_spacer()
+```
+
+---
+
+# Les paramètres du modèle: l'effet $\beta$
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p1 + p2 + p3
+```
+
+```{r fig.height = 7, fig.width = 20, out.width = "90%"}
+p4 + p5 + grid::textGrob("abs(β2) > abs(β1)", 
+                         gp = gpar(fontsize = 40))
+```
+
+---
+
+# L'intervalle de confiance à 95%
+
+* Estimation basée sur un jeu de donneés ne reflète pas forcément la réalité
+
+* Incertitude
+
+* $\beta$ est toujours associé à un **intervalle de confiance**, ne doit jamais être interprété seul
+
+* considéré "significatif" si IC ne contient pas 0
+
+* Note sur la p-val
+
+---
+
+# Sortie de modèle
+
+```{r fig.height = 5, out.width = "50%", dpi=300}
+p_ref
+```
+
+--
+
+<br>
+
+<p style="font-size:40px; font-style: italic;"> poids<sub>naiss</sub> ~ &alpha; + &beta; * IMC<sub>mere</sub></p>
+
+---
+
+# Sortie de modèle
+
+```{r}
+fit1 <- lm(poids_naiss ~ imc_m, data = model_data)
+summary(fit1)
+```
+
+---
+
+# Sortie de modèle
+
+```{r}
+tidy(fit1, conf.int = TRUE)
+```
+
+---
+
+# Sortie de modèle
+
+$$
+poids\_naissance = \alpha + \beta * imc\_mere
+$$
+
+```{r highlight.output=c(3)}
+fit1 <- lm(poids_naiss ~ imc_m, data = model_data)
+summary(fit1)
+```
+
+---
+
+# Sortie de modèle AJOUTER LES IC
+
+$$
+poids\_naissance = \alpha + \beta * imc\_mere
+$$
+
+```{r highlight.output=c(9, 10, 11, 12)}
+fit1 <- lm(poids_naiss ~ imc_m, data = model_data)
+summary(fit1)
+```
+
+---
+
+# Interprétation modèle
+
+* alpha =
+* beta = 
+
+---
+
+# Prédiction
+
+* Remplacer les paramètres de l'équation par les estimations du modèle
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Diagnostique modèle
+
+---
+
+```{r}
+check_model(fit1)
+```
+
+---
+
+# Les résidus
+
+* Différence entre observation et E(Y)
+* Un résidu par point
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+
+```{r fig.height = 5, out.width = "60%", dpi=300}
+set.seed(113)
+df <- tibble(
+  x = rnorm(10),
+  y = rnorm(10)
+)
+
+p <- ggplot(df, aes(x, y)) +
+  geom_point(size = 2) +
+  geom_abline(slope = 1, intercept = 1, col= "blue") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = -2) +
+      theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 25),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    axis.title = element_blank()
+  ) +
+  ylim(c(-1, 2.5)) +
+  xlim(c(-2.5, 2))
+
+p
+```
+
+---
+
+# Les résidus
+
+* Différence entre observation et E(Y)
+* Un résidu par point
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+
+```{r fig.height = 5, out.width = "60%", dpi=300}
+p <- p +
+  annotate(
+    "text",
+    label = expression("X"[i]),
+    x = df$x[1],
+    y = df$y[1] + 0.3,
+    size = 10
+  )
+p
+```
+
+---
+
+# Les résidus
+
+* Différence entre observation et E(Y)
+* Un résidu par point
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+
+```{r fig.height = 5, out.width = "60%", dpi=300}
+p <- p +
+  geom_segment(
+    x = df$x[1],
+    y = df$y[1],
+    xend = df$x[1],
+    yend = df$x[1] + 1,
+    col = "red"
+  )
+p
+```
+
+
+
+---
+
+# Les résidus
+
+* Différence entre observation et E(Y)
+* Un résidu par point
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+
+```{r fig.height = 5, out.width = "60%", dpi=300}
+p <- p +
+  annotate(
+    "text",
+    x = df$x[1] + 0.2,
+    y = df$y[1] - 0.4,
+    label = expression(epsilon[i]),
+    size = 10
+  )
+p
+```
+
+---
+
+# Les résidus
+
+* Différence entre observation et E(Y)
+* Un résidu par point
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+
+```{r fig.height = 5, out.width = "60%", dpi=300}
+for(i in 2:10){
+p <- p + 
+    geom_segment(
+    x = df$x[i],
+    y = df$y[i],
+    xend = df$x[i],
+    yend = df$x[i] + 1,
+    col = "red"
+  )
+}
+
+p
+```
+
+---
+
+# Les résidus
+
+* Différence entre observation et E(Y)
+* Un résidu par point
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+
+```{r fig.height = 5, out.width = "60%", dpi=300}
+hist(residuals(fit1))
+```
+
+---
+
+# Autres paramètres intéressants
+
+* R2
+
+---
+
+# Remarques supplémentaires
+
+* The parameter b associated with X depends on the unit in which X is expressed 
+(if you move from mg/l to g/l, b will be multiplied by 1000)
+
+* It depends on whether or not X corresponds to a transformed quantity or not
+Replacing a quantity by its squared value or logarithm will also modify b
+
+* You cannot interpret b without considering the quantity corresponding to the underlying covariate 
+
+---
+
+# Transformation de la variable
+
+* Il est possible de transformer X
+
+  * ln(X)
+  * $\sqrt($X)
+  * etc
+
+* Il faut juste faire attention lors de l'interprétation
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Modèle univarié, covariable catégorielle
+
+---
+
+# Ecriture du modèle
+
+* Rappel du modèle avec X continu: $E(Y) = \alpha + \beta * X$
+
+--
+
+* Exemple
+  * `Paris`
+  * `Toulouse`
+  * `Grenoble`
+
+--
+
+* Creation de multiples variables binaires numériques ("dummy variables")
+
+--
+
+```{r}
+tab <- tribble(
+  ~X, ~X1, ~X2, ~X3,
+  "Paris", "1", "0", "0",
+  "Toulouse", "0", "1", "0",
+  "Grenoble", "0", "0", "1"
+) 
+
+tab %>%
+  kbl() %>%
+  kable_styling(full_width = F)
+```
+
+---
+
+# Ecriture du modèle
+
+```{r}
+tab %>%
+  kbl(caption = "Dummy variable") %>%
+  kable_styling(full_width = F)
+```
+
+--
+
+* Equation devient:
+
+<p style="font-size:30px; font-style: italic;">E(Y) = &alpha; + &beta;<sub>2</sub> * X<sub>2</sub> + &beta;<sub>3</sub> * X<sub>3</sub></p>
+
+<br>
+
+--
+  
+  * <body>
+      <span style="color:#000000">Si ville == "Paris": </span>
+      <span style="font-style: italic; color:#f92672">     E(Y) = &alpha;</span>
+    </body>
+
+--
+  
+  * <body>
+      <span style="color:#000000">Si ville == "Toulouse": </span>
+      <span style="font-style: italic; color:#f92672">  E(Y) = &alpha; + &beta;<sub>2</sub></span>
+    </body>
+
+--
+
+  * <body>
+      <span style="color:#000000">Si ville == "Grenoble": </span>
+      <span style="font-style: italic; color:#f92672">  E(Y) = &alpha; + &beta;<sub>3</sub></span>
+    </body>
+
+---
+
+# X binaire/catégoriel: ville
+
+* ANOVA (cas particulier de lm)
+
+* Comparaison de la moyenne entre les groupes
+
+* !!! CODAGE !!! (catégoriel codé numérique mettre exemple visuel)
+
+```{r}
+p1 <- model_data %>%
+  ggplot(aes(x = ville,
+             y = poids_naiss2)) +
+  geom_boxplot() +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 25),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks = element_blank(),
+    plot.margin = unit(c(1, 8, 1, 1), "cm"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title = "Poids de naissance et ville",
+    y = "Poids (g)",
+    x = ""
+  )
+```
+
+---
+
+# X binaire/catégoriel: ville
+
+```{r fig.height = 6, out.width = "80%", dpi=300}
+p1 
+```
+
+---
+
+# X catégoriel: ville
+
+```{r fig.height = 6, out.width = "80%", dpi=300}
+p2 <- p1 +
+  geom_segment(y = 4290,
+               x = 1,
+               yend = 4290,
+               xend = 4,
+               lty = 2) +
+  geom_segment(y = 4765,
+               x = 3,
+               yend = 4765,
+               xend = 4,
+               lty = 2,
+               col = "blue") +
+  geom_segment(y = 4765,
+               x = 3.7,
+               yend = 4290,
+               xend = 3.7,
+               arrow = arrow(ends = "both", length = unit(0.03, "npc")),
+               col = "blue")
+
+p2
+```
+
+---
+
+# X catégoriel: ville
+
+```{r fig.height = 6, out.width = "80%", dpi=300}
+p3 <- p2 +
+  annotate(
+    "text",
+    x = 4.2,
+    y = 4500,
+    label = "β2",
+    size = 10,
+    col = "blue"
+  ) 
+
+  
+p3
+```
+
+---
+
+# X catégoriel: ville
+
+```{r fig.height = 6, out.width = "80%", dpi=300}
+p4 <- p3 + 
+    geom_segment(y = 4146,
+               x = 2,
+               yend = 4146,
+               xend = 4,
+               lty = 2,
+               col = "red") +
+  geom_segment(y = 4146,
+               x = 3.7,
+               yend = 4290,
+               xend = 3.7,
+               arrow = arrow(ends = "both", length = unit(0.03, "npc")),
+               col = "red") +
+  annotate(
+    "text",
+    x = 4.2,
+    y = 3900,
+    label = "β3",
+    size = 10,
+    col = "red"
+  )
+
+p4
+```
+
+
+---
+
+# Interprétation
+
+* 
+
+---
+
+# Sortie de modèle
+
+```{r}
+fit1 <- lm(poids_naiss2 ~ ville, data = model_data)
+summary(fit1)
+```
+
+---
+
+# Modèle multivarié
+
+```{r  fig.height = 5, out.width = "80%", dpi=300}
+ggplot(model_data, aes(x = imc_m,
+                       y = poids_naiss,
+                       color = tabac2)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", se = F) +
+    theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 25),
+    axis.ticks = element_blank(),
+  ) +
+  labs(
+    title = "Poids à la naissance et IMC",
+    x = "ln(BPA)",
+    y = "Poids (g)"
+  ) +
+  scale_color_material_d()
+  
+```
+
+---
+
+# Interprétation
+
+```{r}
+fit1 <- lm(poids_naiss ~ sexe + tabac + imc_m + log(bpa), data = model_data)
+summary(fit1)
+```
+
+---
+
+# Interprétation
+
+---
+background-image: url(animal1b.jpg)
+class: inverse, center, middle
+
+# Interaction
+
+---
+
+# Interaction
+
+* définition
+* écriture du modèle
+
+---
+
+# Interprétation
+
+```{r  fig.height = 5, out.width = "80%", dpi=300}
+ggplot(model_data, aes(x = log(bpa),
+                       y = poids_naiss)) +
+  geom_point(alpha = 0.3) +
+    theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 25),
+    axis.ticks = element_blank(),
+  ) +
+  labs(
+    title = "Poids à la naissance et\nexposition au BPA",
+    x = "ln(BPA)",
+    y = "Poids (g)"
+  ) +
+  scale_color_material_d()
+  
+```
+
+---
+
+# Interprétation
+
+```{r  fig.height = 5, out.width = "80%", dpi=300}
+p1 <- ggplot(model_data, aes(x = log(bpa),
+                       y = poids_naiss,
+                       color = sexe)) +
+  geom_point(alpha = 0.3) +
+    theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 25),
+    axis.ticks = element_blank()
+  ) +
+  labs(
+    title = "Poids à la naissance et\nexposition au BPA",
+    x = "ln(BPA)",
+    y = "Poids (g)"
+  ) +
+  scale_color_material_d()
+  
+p1
+```
+
+---
+
+# Interprétation
+
+```{r  fig.height = 5, out.width = "80%", dpi=300}
+p2 <- p1 +
+  geom_smooth(method ="lm", se = F)
+p2
+```
+
+---
+
+# Sortie de modèle
+
+```{r}
+fit1 <- lm(poids_naiss ~ sexe + tabac + imc_m + log(bpa) + log(bpa)*sexe, 
+           data = model_data)
+summary(fit1)
+```
+
+
+
+
+---
+
+# Estimation des paramètres
+
+* Méthode des moindre carrés
+
+---
+
+# Remarques
+
+Linear regression, n observations
+You should not estimate more than n/10 parameters
+E.g., with 200 subjects, there should not be more than 19 binary covariates in the model.
+Remember that if age is coded with 6 categories, it takes 5 dummy (binary) variables to estimate its effect.
+
+
+If the number of covariates becomes too large, the model’s estimate are likely to become less stable and reliable (but there may be no obvious warning sign!)
+
+---
+
+# Rappels
+
+
+

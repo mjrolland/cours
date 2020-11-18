@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+author: "M. Rolland"
+date: "15/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(see)
+```
+
+
+```{r}
+# donnees pour modele
+set.seed(113)
+N <- 750
+model_data <- data.frame(
+  sexe = sample(c("M", "F"), size = N, replace = TRUE, prob = c(0.5, 0.5)),
+  age_m = round(rnorm(n = N, mean = 29, sd = 3.5)),
+  imc_m = round(rnorm(n = N, mean= 24, sd = 3.5), 1),
+  ville = sample(c("Paris", "Grenoble", "Toulouse"), size = N, replace = TRUE, prob = c(0.7, 0.2, 0.1)),
+  tabac = sample(c(0, 1), size = N, replace = TRUE, prob = c(0.8, 0.2)),
+  age_gest = rnorm(n = N, mean = 40, sd = 1),
+  bpa = exp(rnorm(n = N, mean = 0.75, sd = 0.85))
+) %>%
+  mutate(
+    sexe = relevel(factor(sexe), ref = "M"),
+    ville = relevel(factor(ville), ref = "Paris")
+    )
+```
+
+
+```{r}
+# dummy vars
+model_data <- model_data %>%
+  mutate(
+    sexe_f = ifelse(sexe == "F", 1, 0),
+    ville_t = ifelse(ville == "Toulouse", 1, 0),
+    ville_g = ifelse(ville == "Grenoble", 1, 0)
+  )
+```
+
+```{r}
+set.seed(113)
+# randomly add some NA
+na_x <- sample(1:nrow(model_data), size = 5, replace = TRUE)
+na_y <- sample(1:ncol(model_data), size = 5, replace = TRUE)
+model_data[na_x, na_y] <- NA
+```
+
+
+```{r}
+# poids naissance moyen
+poids_naiss_moy <- 3300
+# intercept
+int <- -(6277 - poids_naiss_moy)
+# beta female
+b_sexe_f <- -80
+# beta age mere
+b_age_m <- -3
+# beta age gest
+b_age_gest <- 150
+# beta imc mere
+b_imc_m <- 20
+# beta toulouse
+b_ville_t <- 50
+# beta grenoble
+b_ville_g <- -20
+# beta tabac
+b_tabac <- -200 # exagéré pour l'exemple
+# bpa
+b_bpa <- -100
+# gamma inter tabac * lait
+g_bpa_sex <- -120
+
+# error variability
+sigma <- 400
+
+```
+
+```{r}
+# outcome
+set.seed(113)
+model_data <- model_data %>%
+  mutate(
+    poids_naiss = int + b_sexe_f * sexe_f + b_age_m * age_m + b_age_gest * age_gest + 
+      b_imc_m * imc_m + b_ville_t * ville_t + b_ville_g * ville_g + b_tabac * tabac + 
+      b_bpa * log(bpa) + (b_bpa - g_bpa_sex) * sexe_f * log(bpa) + rnorm(n = N, mean = 0, sd = 400),
+    poids_naiss = round(poids_naiss)
+  )
+
+```
+
+```{r}
+ggplot(model_data, aes(x = poids_naiss)) +
+  geom_histogram() +
+  theme_lucid() +
+  labs(
+    x = "Poids de naissance (g)"
+  )
+```
+
+
+```{r}
+ggplot(model_data, aes(x = imc_m,
+                       y = poids_naiss)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_lucid() +
+  labs(
+    title = "Poids à la naissance et IMC maternel",
+    x = "IMC (kg/m^2)",
+    y = "Poids (g)"
+  )
+```
+
+```{r}
+ggplot(model_data, aes(x = log(bpa),
+                       y = poids_naiss,
+                       color = sexe)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_lucid() +
+  scale_color_material_d() +
+  labs(
+    x = "log(BPA)",
+    y = "Poids de naissance (g)",
+    color = "Sexe"
+  )
+```
+
+
+```{r}
+lm1 <- lm(poids_naiss ~ sexe + age_m + ville + age_gest + imc_m + log(bpa) + tabac + log(bpa) * sexe,
+          data = model_data)
+summary(lm1)
+```
+
+```{r}
+
+```
+

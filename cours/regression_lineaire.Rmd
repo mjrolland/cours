@@ -729,19 +729,11 @@ class: inverse, center, middle
 
 --
 
-* E(Y) = α + β \* X
+* E(Y) = α + β * X
 
----
+--
 
-# Poids de naissance et IMC 
-
-* Y (Poids à la naissance)
-
-* X (IMC maternel)
-
-* E(Y) = α + β \* X
-
-              ( => Poids ~ α + β * IMC )
+=> **Poids ~ α + β<sub>IMC</sub> x IMC**
 
 --
 
@@ -1834,7 +1826,7 @@ ggplot(model_data, aes(x = log(bpa),
   * $\sqrt(X)$
   * etc
 
-* E(Y) = &alpha; + &beta; * X => **E(Y) = &alpha; + &beta; * ln(X)**
+* E(Y) = &alpha; + &beta; * X => **E(Y) = &alpha; + &beta;** * **ln(X)**
 
 --
 
@@ -1907,6 +1899,8 @@ tab %>%
 --
 
 * Equation E(Y) = &alpha; + &beta; * X devient:
+
+--
 
 <p style="font-size:30px; font-style: italic;">E(Y) = &alpha; + &beta;<sub>2</sub> * X<sub>2</sub> + &beta;<sub>3</sub> * X<sub>3</sub></p>
 
@@ -2086,7 +2080,7 @@ class: inverse, center, middle
 
 --
 
-<p style="font-size:40px; font-style: italic; text-align: center;">E(Y) = &alpha; + &beta;<sub>IMC</sub> * IMC<sub>1</sub> + &beta;<sub>tabac</sub> * Tabac<sub>p</sub></p>
+<p style="font-size:40px; font-style: italic; text-align: center;">E(Y) = &alpha; + &beta;<sub>IMC</sub> * IMC + &beta;<sub>tabac</sub> * Tabac</p>
 
 --
 

@@ -1,0 +1,228 @@
+---
+title: "Régression Logistique"
+subtitle: "Aide mémoire"
+author: "M. Rolland"
+output:
+  xaringan::moon_reader:
+    css: [xaringan-themer.css, my-css.css]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r message = FALSE, warning = FALSE, echo = FALSE}
+library(tidyverse)
+library(xaringanthemer)
+library(kableExtra)
+library(broom)
+```
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+style_mono_accent(
+  base_color = "#035aa6",
+  header_font_google = google_font("Neucha"), #Amatic SC #Neucha
+  text_font_google   = google_font("Pangolin", "300", "300i"),
+  code_font_google   = google_font("Fira Mono")
+)
+```
+
+---
+
+--
+
+# Y binaire 0/1
+
+* Y = 1: malade
+* Y = 0: non-malade
+
+<br>
+
+--
+
+$E(Y) = Probabilité(malade)$
+
+---
+
+# Y binaire 0/1
+
+* Y = 1: malade
+* Y = 0: non-malade
+
+<br>
+
+$E(Y) = Probabilité(malade) = p$
+
+
+---
+
+--
+
+# Probabilité
+
+Valeur continue entre 0 et 1
+
+--
+
+# Odds
+
+$$
+Odds = \frac{p(événement)}{p(non\ événement)} = \frac{p}{1 - p}
+$$
+
+--
+
+!!! $Odds \neq p$ !!!
+
+---
+
+# Probabilité
+
+Valeur continue entre 0 et 1
+
+# Odds
+
+$$
+Odds = \frac{p(événement)}{p(non\ événement)} = \frac{p}{1 - p}
+$$
+
+--
+
+# Odds ratio
+
+$$
+Odds\ ratio = \frac{odds_1}{odds_0} = \frac{\frac{p_1}{1 - p_1}}{\frac{p_0}{1 - p_0}}
+$$
+
+---
+
+--
+
+$E(Y) = P$
+
+--
+
+$P \neq \alpha + \beta * X$
+
+--
+
+# logit
+
+--
+
+$logit(p) = ln(\frac{p}{1 - p})$
+
+--
+
+$logit(E(Y)) = \alpha + \beta * X$
+
+--
+
+# Estimation equation
+
+--
+
+$p = \frac{e^{(\alpha + \beta * X)}}{1 + e^{(\alpha + \beta * X)}}$
+
+---
+
+--
+
+# &alpha; et risque de base
+
+$\alpha => P_0 = \frac{exp(\alpha)}{1 + exp(\alpha)}$
+
+--
+
+# &beta; et OR
+
+--
+
+$exp(\beta) = OR$
+
+--
+
+* OR > 0 et IC ne contient pas zéro: effet délétère
+* OR < 0 et IC ne contient pas zéro: effet protecteur
+* IC contient zéro: pas d'effet significatif
+
+--
+
+<br>
+
+$OR = 1.07$ => incrément du odds de 7%
+
+---
+
+# Exemple
+
+--
+
+```{r}
+library(tidyverse)
+model_data <- read_csv("example_data.csv")
+model_data <- model_data %>%
+  mutate(
+    poids_bas = ifelse(poids_naiss < 2500, 1, 0)
+  )
+```
+
+```{r}
+tab <- model_data %>% select(poids_naiss, poids_bas, poids_bas, sexe, age_m, 
+                             imc_m, tabac, bpa)
+tab %>%
+  kbl() %>%
+  kable_styling()
+```
+
+---
+
+# Exemple
+
+```{r}
+tab %>%
+  kbl() %>%
+  kable_styling() %>%
+  row_spec(c(4, 6), bold = T, background = "yellow")
+```
+
+---
+
+# Exemple
+
+```{r echo = TRUE}
+fit1 <- glm(poids_bas ~ sexe + age_m + imc_m + tabac + log(bpa),
+            family = binomial(link = "logit"),
+            data = model_data)
+```
+
+--
+
+```{r}
+tidy(fit1, conf.int = TRUE) %>% select(-std.error, -statistic)
+alpha <- round(coef(fit1)[1], 2)
+b_imc <- round(coef(fit1)[4], 2)
+b_imc_lo <- round(confint(fit1)[4, 1], 2)
+b_imc_hi <- round(confint(fit1)[4, 2], 2)
+```
+
+--
+
+* &alpha; = **`r alpha`** => P0 = exp(**`r alpha`**) / (1 + exp(**`r alpha`**)) = **`r round(exp(alpha) / (1 + exp(alpha)), 2)`**
+
+--
+
+* &beta;<sub>IMC</sub> = **`r b_imc`**, IC<sub>&beta;</sub> = [**`r b_imc_lo`**; **`r b_imc_hi`**]
+
+--
+
+  * OR<sub>IMC</sub> = exp(**`r b_imc`**) = **`r round(exp(b_imc), 2)`**
+  * IC<sub>OR</sub> = [exp(**`r b_imc_lo`**); exp(**`r b_imc_hi`**)] = [**`r round(exp(b_imc_lo), 2)`**; **`r round(exp(b_imc_hi), 2)`**]
+
+

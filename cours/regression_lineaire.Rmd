@@ -14,6 +14,10 @@ output:
       countIncrementalSlides: false
 ---
 
+<!--
+Notes for next time:
+* ajouter un passage sur le R2
+-->
 
 ```{r message = FALSE, warning = FALSE, echo = FALSE}
 library(tidyverse)
@@ -569,7 +573,7 @@ class: inverse, center, middle
 
 --
 
-* **E(Y)**: Espérance de Y (Expected value, moyenne Y pour X donné)
+* **E(Y)**: Espérance de Y (Expected value)
 
 --
 
@@ -733,7 +737,7 @@ class: inverse, center, middle
 
 --
 
-=> **Poids ~ α + β<sub>IMC</sub> x IMC**
+(=> **Poids ~ α + β<sub>IMC</sub> x IMC**)
 
 --
 
@@ -752,7 +756,6 @@ p_ref <- ggplot(model_data, aes(x = imc_m,
     text = element_text(size = 18)
   ) +
   labs(
-    title = "",
     x = "IMC (kg/m²)",
     y = "Poids (g)"
   ) +
@@ -765,14 +768,27 @@ p_ref <- ggplot(model_data, aes(x = imc_m,
 
 --
 
+<br>
+
 ```{r fig.height = 5, out.width = "80%", dpi=300}
 p_ref
 ```
 
+---
+
+# Poids de naissance et IMC 
+
+E(Y) = α + β * X
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+p_ref
+```
 
 ---
 
 # Poids de naissance et IMC 
+
+E(Y) = α + β * X
 
 ```{r fig.height = 5, out.width = "80%", dpi=300}
 p2 <- p_ref + geom_smooth(method = "lm", se = F, col = "black")
@@ -783,6 +799,8 @@ p2
 ---
 
 # Poids de naissance et IMC 
+
+E(Y) = α + β * X
 
 ```{r fig.height = 5, out.width = "80%", dpi=300}
 p3 <- p2 + 
@@ -801,6 +819,8 @@ p3
 ---
 
 # Poids de naissance et IMC 
+
+E(Y) = α + β * X
 
 ```{r fig.height = 5, out.width = "80%", dpi=300}
 p4 <- p3 +
@@ -835,6 +855,8 @@ p4
 ---
 
 # Poids de naissance et IMC 
+
+E(Y) = α + β * X
 
 ```{r fig.height = 5, out.width = "80%", dpi=300}
 p5 <- p4 +
@@ -1271,6 +1293,22 @@ tab %>%
 fit1 <- lm(poids_naiss ~ imc_m, data = model_data)
 ```
 
+```{r}
+tab %>%
+  kbl() %>%
+  kable_styling() %>%
+  column_spec(c(2, 5), background = "yellow")
+```
+
+
+---
+
+# Sortie de modèle
+
+```{r echo = TRUE, echo = TRUE, eval = FALSE}
+fit1 <- lm(poids_naiss ~ imc_m, data = model_data)
+```
+
 ---
 
 # Sortie de modèle
@@ -1313,6 +1351,14 @@ summary(fit1)
 ```{r echo = TRUE, highlight.output=c(9:12)}
 fit1 <- lm(poids_naiss ~ imc_m, data = model_data)
 summary(fit1)
+```
+
+---
+
+# Sortie de modèle
+
+```{r echo = TRUE, eval = FALSE}
+confint(fit1)
 ```
 
 ---
@@ -1654,9 +1700,76 @@ hist(residuals(fit1))
 
 ---
 
-# Autres paramètres intéressants
+# Les résidus
 
-* R2
+* $\epsilon$: différence entre observation et E(Y)
+
+* Un résidu par point
+
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+```{r fig.height = 5, out.width = "60%", dpi=300, echo = TRUE, eval = FALSE}
+qqnorm(residuals(fit1))
+qqline(residuals(fit1))
+```
+
+---
+
+# Les résidus
+
+* $\epsilon$: différence entre observation et E(Y)
+
+* Un résidu par point
+
+* Hypothèse de la régression linéaire: **normalité des résidus** (et pas Y)
+
+```{r fig.height = 5, out.width = "60%", dpi=300, echo = TRUE}
+qqnorm(residuals(fit1))
+qqline(residuals(fit1))
+```
+
+---
+
+# Les résidus
+
+```{r fig.height = 5, out.width = "80%", dpi=300}
+ggplot(model_data, aes(x = imc_m,
+                       y = exp(poids_naiss/600))) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", col = "black") +
+  theme(
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    panel.grid = element_line(colour = "gray90"),
+    text = element_text(size = 18)
+  ) +
+  labs(
+    x = "X",
+    y = "Y"
+  ) +
+  theme_xaringan()
+```
+
+---
+
+# Les résidus
+
+```{r}
+fit1 <- lm(exp(poids_naiss/600) ~ imc_m, data = model_data)
+```
+
+```{r fig.height = 5, out.width = "60%", dpi=300, echo = TRUE}
+hist(residuals(fit1), 100)
+```
+
+---
+
+# Les résidus
+
+```{r fig.height = 5, out.width = "60%", dpi=300, echo = TRUE}
+qqnorm(residuals(fit1))
+qqline(residuals(fit1))
+```
 
 ---
 
@@ -2088,6 +2201,12 @@ class: inverse, center, middle
 
 **!!! LIMITE VARS !!!**
 
+<!--
+You should not estimate more than n/10 parameters
+E.g., with 200 subjects, there should not be more than 19 binary covariates in the model.
+Remember that if age is coded with 6 categories, it takes 5 dummy (binary) variables to estimate its effect.
+-->
+
 ---
 
 # Sortie modèle
@@ -2212,30 +2331,28 @@ summary(fit5)
 
 ---
 
-# ln(BPA) * Sexe
+# Remarques finales
 
-INTERPRETATION INTERACTION
+--
+
+![](robust_flexible3.png)
 
 ---
 
 # Remarques finales
 
-* Robuste
+![](robust_flexible2.png)
 
-* Flexible
+---
 
-* Linear regression, n observations
-You should not estimate more than n/10 parameters
-E.g., with 200 subjects, there should not be more than 19 binary covariates in the model.
-Remember that if age is coded with 6 categories, it takes 5 dummy (binary) variables to estimate its effect.
+# Remarques finales
 
 
-If the number of covariates becomes too large, the model’s estimate are likely to become less stable and reliable (but there may be no obvious warning sign!)
+![](robust_flexible.png)
 
 ---
 
 ![](https://media.giphy.com/media/kolvlRnXh8Jj2/giphy.gif)
-
 
 
 ```{r}

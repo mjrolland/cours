@@ -1,0 +1,213 @@
+---
+title: "Master MREST - UE Epidémiologie"
+subtitle: "Examen - 2H"
+date: "Jeudi 12 décembre 2019"
+output: pdf_document
+bibliography: biblio_mr.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(pander)
+```
+
+# Exposition aux allergènes respiratoires et inflammation bronchique chez l’enfant
+
+```{r}
+set.seed(113)
+# Covariates
+allergen_data <- data.frame(
+  exposure = runif(277, 0, 50),
+  # 2/3 non allergic
+  allergic = sample(c(0, 0, 1), 277, replace = TRUE)
+)
+
+# Model parameters
+intercept <- 10
+sd1 <- 10
+beta1 <- 0
+beta2 <- 10
+beta3 <- 0.8
+  
+# Simulated outcome
+allergen_data <- allergen_data %>%
+  mutate(feno_level = intercept + beta1*exposure + beta2*allergic + beta3*exposure*allergic + rnorm(n = 200, mean = 0, sd = sd1),
+         feno_level = ifelse(feno_level < 0, 0, feno_level),
+         allergic = as.factor(allergic),
+         feno_level_cat = ifelse(feno_level < 20, 0, 1))
+
+```
+
+Cet examen est librement inspiré d’une étude de [@sordillo_allergen_2011].
+
+Il est estimé qu’entre 2,6 et 12,9% des enfants seraient asthmatiques, et qu’entre 4,0 et 32,8% seraient concernés par une rhinite allergique. Les allergies respiratoires constituent en cela les pathologies chroniques les plus fréquentes chez l’enfant.
+
+Cette étude, menée chez 277 enfants âgés de 12 ans, vise à décrire l’état inflammatoire bronchique chez l’enfant et d’étudier les liens potentiels avec les allergies respiratoires et l’exposition aux allergènes.
+
+La fraction expirée de monoxyde d’azote (FeNO, en ppb), marqueur de l’inflammation bronchique, et donc de l’asthme, a été mesurée chez ces enfants. Selon les standards proposés par l’American Thoracic Society (ATS), la FeNO est considérée anormale chez l’enfant au-delà de 20 ppb. La réponse allergologique des enfants à différents allergènes a été évaluée par dosage sanguin des immunoglobulines de type E (IgE). En parallèle, un questionnaire rempli par les parents a permis de renseigner le sexe, l’âge, le poids, la taille et les antécédents maternels d’asthme de l’enfant. Un prélèvement de poussière au domicile de la famille a également été réalisé afin de caractériser l’exposition de l’enfant aux allergènes respiratoires. Un bref descriptif est fourni en **Table 1**.
+
+```{r}
+tab <- tribble(~stat, ~val,
+               "moyenne", mean(allergen_data$feno_level),
+               "ecart type", sd(allergen_data$feno_level),
+               "N <= 20", sum(allergen_data$feno_level_cat == 0),
+               "N > 20", sum(allergen_data$feno_level_cat == 1))
+
+colnames(tab) <- c(" ", " ")
+
+pander(tab, caption = "Description des niveaux de FeNO mesurés en ppb")
+```
+
+## Partie 1 (4,5 points)
+
+1.	Quel est le design de cette étude? (0,5)
+
+2.	Quels sont les principaux avantages et inconvénients de ce type d’étude? (1)
+
+3.	Rappeler les définitions de l’incidence et de la prévalence. (1,5)
+
+4. Peut-on estimer une prévalence et/ou une incidence de l’inflammation bronchique chez l’enfant avec cette étude? Si non, pourquoi? Si oui, la validité de l’estimation est soumise à quelle condition majeure? Faire le(s) calcul(s) numérique(s) si possible. (1,5)
+
+## Partie 2 (6,5 points)
+
+La **Table 2** présente la relation entre le niveau de FeNO et différentes allergies pour les individus de la cohorte. Y sont présentées les associations non ajustées entre FeNO et allergie, puis ce sont les associations ajustées sur le sexe et les antécédents maternels asthme (oui/non).
+
+```{r}
+tab <- tribble(~allergie, ~statut, ~n, ~beta_uni, ~p_uni, ~beta_adj, ~p_adj,
+                 "Acariens", "Non allergique", 151, "ref", "-", "ref", "-",
+                 " ", "Allergique", 99, "13.5", "<0.0001", "13.8", "<0.0001",
+                 "Chien", "Non allergique", 237, "ref", "-", "ref", "-",
+                 " ", "Allergique", 13, "27", "<0.0001", "15.2", "0.01",
+                 "Souris", "Non allergique", 241, "ref", "-", "ref", "-",
+                 " ", "Allergique", 6, "20.2", "0.02", "-0.2", "0.98",
+                 "Graminées", "Non allergique", 206, "ref", "-", "-", "-",
+                 " ", "Allergique", 41, "2.6", "0.30", "-", "-")
+
+colnames(tab) <- c("Allergie", "Statut", "N", "Beta\nunivarié", "p", "Beta\najusté", "p")
+
+pander(tab, caption = "FeNO en fonction de la réponse allergique à divers allergènes respiratoires.")
+
+```
+
+6. Pour produire cette table des modèles de régression ont été utilisés, selon vous de quel type de modèle s'agit-il? Pourquoi? (1)
+
+<!-- Régression linéraire, Y continu -->
+
+7. Ecrivez l'équation ce modèle (analyse de la relation entre FeNO et statut allergique) et expliquez à quoi correspondent les différents paramètres et comment les interpréter. (3)
+
+<!-- 
+E(Y) = A + B*X
+Y = outcome
+E(Y) = espérance de Y
+A = intercept
+X = expo
+B = beta/pente
+--> 
+
+8. Quel est le type de la variable "statut allergique" ? (0,5)
+
+<!-- Categorielle/binaire -->
+
+9. Quelle information manque-t-il dans cette table pour donner une idée de la précision de l'estimation des beta? (0,5)
+
+<!-- Les intervalles de confiance -->
+
+10. Au vu des résultats avant et après ajustement sur les antécédents maternels d’asthme, comment qualifier ce facteur dans le cas de l’association entre FeNO et allergie: aux acariens? au chien? à la souris? (1,5)
+
+## Partie 3 (2,5 points)
+
+La partie suivante s'intéresse à l'analyse du niveau de FeNO en fonction de la quantité d'accariens dans les poussières du domicile de la personne mesurée en $\mu g_{accarien}/ g_{poussière}$. Les niveaux de FeNO en fonction de la quantité d’acariens sont représentés en **Figure 1**.
+
+```{r fig.height = 3, fig.width = 4, fig.cap = "Mesure des niveaux de FeNO en fonction de l'exposition aux acariens"}
+ggplot(allergen_data, aes(x = exposure,
+                          y = feno_level)) +
+  geom_point() +
+  ylab(expression(FeNO~(ppb))) +
+  xlab(Acariens~(mu~g/g)) +
+  see::theme_modern()
+```
+
+11. Quel est le type de la variable "exposition aux acariens"? (0,5)
+
+<!-- continue -->
+
+Voici la sortie du modèle de régression du niveau de FeNO en fonction de la quantité d’acariens mesurée dans les poussières:
+
+```{r}
+summary(lm(feno_level ~ exposure, data = allergen_data))
+```
+
+$\newline$
+
+12. Comment interprétez-vous le lien entre exposition aux acariens et niveau moyen de FeNO? (1,5)
+
+<!-- association postivie et significative. +1 niveau de pheno par microgramme d'accarien en plus -->
+
+13. Selon ce modèle quelle est la formule à appliquer pour calculer le niveau moyen de FeNO pour une exposition aux accariens de 10 $\mu g/g$? (0,5)
+
+<!-- feno(expo = 10) =  -->
+
+## Partie 4 (3 points)
+
+Dans la **Figure 2** on stratifie les données sur le fait que la personne soit allergique aux accariens ou non.
+
+```{r fig.height = 3, fig.width = 4.5, fig.cap = "Mesure des niveaux de FeNO en fonction de l'exposition aux acariens stratifiée selon l'allergie aux acariens"}
+ggplot(allergen_data, aes(x = exposure,
+                          y = feno_level,
+                          color = allergic,
+                          shape = allergic)) +
+  geom_point()  +
+  ylab(expression(FeNO~(ppb))) +
+  xlab(Acariens~(mu~g/g)) +
+  see::theme_modern() +
+  see::scale_color_material_d()
+```
+
+14. Qu’observez-vous? Comment nomme-t-on ce phénomène? Veuillez brièvement l’expliquer. (1,5)
+
+<!-- interaction -->
+
+15. Quelle modification au modèle suggérez-vous? (0,5)
+
+<!-- ajout d'un terme d'intéraction -->
+
+16. Que sont les résidus d'un modèle de régression linéaire? Quelles propriétés doivent-ils satisfaire? (1)
+
+<!-- moyenne = 0, variance contsante -->
+
+## Partie 5 (1,5 points)
+
+Imaginons que la variable FeNO ait été codée de la manière suivante:
+
+* Si feno <= 20 alors FeNO = 0
+* Si feno > 20 alors FeNO = 1
+
+17. Quel modèle de régression auriez vous choisi pour l'analyser? Pour quelle(s) raison(s)? (1)
+
+18. Quelle est la formule de la fonction logit? (0,5)
+
+## Partie 6 (2 points)
+
+19. Imaginons que $\beta_{exp} = 0.1$. Quelle formule appliqueriez-vous pour obtenir l'odds ratio correspondant? (0,5)
+
+<!-- exp(beta) -->
+
+20. Comment interpréteriez vous les OR suivants (1,5)
+  * a. 1.5 [1.3; 1.7]
+  * b. 1.1 [0.9; 1.3]
+  * c. 0.8 [0.7; 0.8]
+
+<!-- 
+a. facteur de risque
+b. pas d'effet
+c. protecteur
+-->
+
+# Références
+
+

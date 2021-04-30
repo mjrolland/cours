@@ -53,18 +53,18 @@ Notes for next time:
 &lt;!-- It enables you to see your project history and who has made change when and why --&gt;
 &lt;!-- And if you make a mistake you can always switch your project back to an earlier state --&gt;
 
-
-
 --
 
-# GitHub/GitLab
+# GitHub / GitLab
 
-* Online hosting platforms for a Git-based project
+* Online hosting platforms for Git-based projects
 * Remote repo  &lt;!-- very useful even when working solo on a project --&gt;
 * User friendly web interface &lt;!-- Especially useful when sharing code --&gt;
 * Special features
   * Issues
   * Pull-requests
+  * Create website
+  * etc
 
 &lt;!-- ![](github_logo-sm.png) ![](gitlab-logo-sm.png) --&gt;
 
@@ -77,62 +77,92 @@ Notes for next time:
 
 # Why use Git?
 
-* Reproducibility
-* Security
-* Sharing
-* Collaboration
-* Very well integrated in Rstudio
+* Reproducibility &lt;!-- File history --&gt;
+* Security &lt;!-- online copy of your code --&gt;
+* Collaboration &lt;!-- more and more common in modern data science --&gt;
+* Sharing/Open science &lt;!-- for us we can easily share our publication code --&gt; 
+* Very well integrated in Rstudio &lt;!-- which removes a lot of the initial hassle/hurdles historically associated with git --&gt;
+
+  
+--
+
+BUT
+
+* **installation and initial configuration can be complicated**
+* **it is an extra layer of complexity**
 
 ---
 
 # Architecture
 
-A central server, several computers
+&lt;!-- A central server, several computers --&gt;
 
 ![](collaboration_small.png)
+
+Illustration from [happygitwithr](https://happygitwithr.com/)
 
 ---
 
 # Vocabulary
 
-`repository...` set of files and folders tracked by git (aka repo)  
+`repository...` set of files and folders tracked by git (aka **repo**)  
 `remote.......` online backup of your repo  
 
 ---
 
 # Workflow
 
-1. Create a repo / get a local copy of an existing repo
-2. Create / modify / delete files from this repo
-3. Take snapshots of the repo
-4. Save the snapshots
-5. Share the snapshots
-6. Get other collaborators' modifications on the repo
-
----
-
-# Main commands
-
 &lt;!-- git developed as a command line tool but you can (nearly) never use them when working in Rstudio --&gt;
 
-`git init.....` creates a new repo   
-`git clone....` clones an existing repo   
-`git add......` include changes of a file into the next commit (aka staging)   
-`git commit...` save changes locally   
-`git push.....` uploads commits to the remote repository   
-`git pull.....` get updates from the remote repo   
+--
+
+Create a repo  / get a local copy of an existing repo 
+
+* `git init`
+* `git clone` 
+
+--
+
+Take snapshots of the local repo modifications (aka staging)
+
+* `git add`
+
+--
+
+Save modifications locally
+
+* `git commit`
+
+--
+
+Send local modifications to remote
+
+* `git push`
+
+--
+
+Get collaborators' modifications on your local repo
+
+* `git pull`
 
 ---
 
-# Stage - Commit
+# Commit
 
 &lt;!-- to save modifications of a repo you always have to do the two following steps stage and commit, so I will talk about these two actions as if they were one because in practice that's how it is --&gt;
 
 ![](commits.png)
 
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+Illustration from [happygitwithr](https://happygitwithr.com/)
+
 ---
 
-# Commit - Vocabulary
+# Vocabulary
 
 `hash...` unique identifier  
 `diff...` difference between two versions of the same file  
@@ -146,6 +176,13 @@ A central server, several computers
 # Push - Pull
 
 ![](push_pull.png)
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+Illustration from [happygitwithr](https://happygitwithr.com/)
 
 ---
 
@@ -157,7 +194,7 @@ Allow for trial and error while maintaining a functional version
 
 ---
 
-# Branches - Vocabulary
+# Vocabulary
 
 `master branch...` clean and functional version of the code  
 `merge...........` including modifications from a dev branch to the master branch  
@@ -173,15 +210,92 @@ Allow for trial and error while maintaining a functional version
 
 ![](versioning.png)
 
+Illustration from [happygitwithr](https://happygitwithr.com/)
 
 ---
 
-# Git in team env-epi
+# A few simple rules
 
-* Each engineer, researcher, post-doc, etc has their account
-* Team account to share publication code: https://gricad-gitlab.univ-grenoble-alpes.fr/iab-env-epi
+You should
+
+* Pull often &lt;!-- to keep your local machine as close to the remote repository as possible --&gt;
+
+--
+
+* Push infrequently
+
+--
+
+* Commit frequently &lt;!-- Instead, you should often commit small, single changes with carefully crafted commit messages that tell what the small, discrete change is.  --&gt;
+
+--
+
+* Pull before you push  &lt;!--Doing so will ensure that your local copy is in sync with the remote repository.  You can do this as often as you like, and should do it frequently — at least once a day if not more.--&gt;
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+ref: [Rules for Good Git Hygiene](https://betterprogramming.pub/six-rules-for-good-git-hygiene-5006cf9e9e2)
+
+---
+
+# Git in IAB - Team 12
+
+* Each engineer, researcher, post-doc, etc has their own personnal account
+* **!!No data is tracked!!** ==&gt; `/data` folder *always* in the `.gitignore` file
+* Team account to share publication code and useful productions: 
+
+--
 
 ![](iab-env-epi.png)
+
+---
+
+# How I use Git
+
+* One Rstudio project per analysis synchronised on my own GitLab account
+* Upload code for my publications once they are online on the team's GitLab
+
+--
+
+![](project-folder.png)
+
+---
+
+# How I use Git
+
+* One Rstudio project per analysis synchronised on my own GitLab account
+* Upload code for my publications once they are online on the team's GitLab
+
+![](babylab-folder.png)
+
+---
+
+# How I use Git
+
+* One Rstudio project per analysis synchronised on my own GitLab account
+* Upload code for my publications once they are online on the team's GitLab
+
+![](gitignore.png)
+
+---
+
+# How I use Git
+
+* One Rstudio project per analysis synchronised on my own GitLab account
+* Upload code for my publications once they are online on the team's GitLab
+
+
+![](my-gitlab.png)
 
 ---
 
@@ -189,12 +303,13 @@ Allow for trial and error while maintaining a functional version
 
 * Great resource on all day to day uses, problems and diagnostics of git with R: https://happygitwithr.com/
 * Goog presentation in French: https://www.slideshare.net/VincentGuyader/git-rstudio-vincent-guyader
-* Preprint paper on using git with R: https://doi.org/10.7287/peerj.preprints.3159v2
+* Scientific preprint publication on using git with R: https://doi.org/10.7287/peerj.preprints.3159v2
 * In depth youtube tutorial on Git: https://www.youtube.com/watch?v=8JJ101D3knE
+* Our teams public GitLab page: https://gricad-gitlab.univ-grenoble-alpes.fr/iab-env-epi
 
 ---
 
-Thanks :)  
+![](github.gif) 
 
 &lt;!-- Transition to Pau  --&gt;
 

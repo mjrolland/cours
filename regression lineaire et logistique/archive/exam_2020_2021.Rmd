@@ -1,0 +1,182 @@
+---
+title: "Master MREST - UE Epidémiologie"
+date: "Jeudi 10 décembre 2020"
+output:
+  word_document: default
+  pdf_document: default
+subtitle: "Examen - 2H"
+bibliography: ../biblio_mr.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(pander)
+```
+
+# Partie 1: Proposer un protocole d'analyse (5 points)
+
+Vous souhaitez étudier le rôle de l’exposition aux perturbateurs endocriniens sur la fonction respiratoire dans la population française. Pour cela vous mesurez la concentration de multiples dérivés de ces polluants chimiques dans les urines, au total 54 biomarqueurs, chacun distribué selon une loi Normale. La fonction respiratoire est une mesure du souffle que l’on nommera VEMS pour volume expiratoire maximal en 1 seconde. C'est une variable continue qui est distribuée selon une loi Normale.
+
+Vous avez recruté 5050 individus dans différentes régions et avez réussi à mesurer l’ensemble des biomarqueurs et la fonction respiratoire sur un échantillon de 5000 individus. Vous disposez de l’ensemble des données sur les facteurs confondants pour 4005 individus. On soupçonne pour 3 biomarqueurs un possible effet plus prononcé chez les fumeurs actifs compte tenu de résultats d’études antérieures. 
+
+**Pourriez-vous préciser les différentes étapes du protocole d’analyse en précisant à chaque étape la méthode statistique envisagée, les paramètres statistiques estimés et l’intérêt de cette étape?**
+  
+# Partie 2: Interpréter les résultats d'une étude épidémiologique (15 points)
+
+## Exposition aux allergènes respiratoires et inflammation bronchique chez l’enfant
+
+```{r}
+set.seed(113)
+N <- 277
+# Covariates
+allergen_data <- data.frame(
+  exposure = runif(N, 0, 50),
+  # 2/3 non allergic
+  allergic = sample(c(0, 0, 1), N, replace = TRUE)
+)
+
+# Model parameters
+intercept <- 10
+sd1 <- 10
+beta1 <- 0
+beta2 <- 12
+beta3 <- 0.8
+  
+# Simulated outcome
+allergen_data <- allergen_data %>%
+  mutate(feno_level = intercept + beta1*exposure + beta2*allergic + beta3*exposure*allergic + rnorm(n = 200, mean = 0, sd = sd1),
+         feno_level = ifelse(feno_level < 0, 0, feno_level),
+         allergic = as.factor(allergic),
+         feno_level_cat = ifelse(feno_level < 20, 0, 1))
+
+```
+
+Cet examen est librement inspiré d’une étude de [@sordillo_allergen_2011].
+
+Il est estimé qu’entre 2,6 et 12,9% des enfants seraient asthmatiques, et qu’entre 4,0 et 32,8% seraient concernés par une rhinite allergique. Les allergies respiratoires constituent en cela les pathologies chroniques les plus fréquentes chez l’enfant.
+
+Cette étude, menée chez `r N` enfants âgés de 12 ans, vise à décrire l’état inflammatoire bronchique chez l’enfant et d’étudier les liens potentiels avec les allergies respiratoires et l’exposition aux allergènes.
+
+La fraction expirée de monoxyde d’azote (FeNO, en ppb), marqueur de l’inflammation bronchique, et donc de l’asthme, a été mesurée chez ces enfants. Selon les standards proposés par l’American Thoracic Society (ATS), la FeNO est considérée anormale chez l’enfant au-delà de 20 ppb. La réponse allergologique des enfants à différents allergènes a été évaluée par dosage sanguin des immunoglobulines de type E (IgE). En parallèle, un questionnaire rempli par les parents a permis de renseigner le sexe, l’âge, le poids, la taille et les antécédents maternels d’asthme de l’enfant. Un prélèvement de poussière au domicile de la famille a également été réalisé afin de caractériser l’exposition de l’enfant aux allergènes respiratoires. Un bref descriptif est fourni en **Table 1**.
+
+\newpage
+
+```{r}
+tab <- tribble(~stat, ~val,
+               "moyenne", mean(allergen_data$feno_level),
+               "ecart type", sd(allergen_data$feno_level),
+               "N <= 20", sum(allergen_data$feno_level_cat == 0),
+               "N > 20", sum(allergen_data$feno_level_cat == 1))
+
+colnames(tab) <- c(" ", " ")
+
+pander(tab, caption = "Description des niveaux de FeNO mesurés en ppb")
+```
+
+## Partie 2.1 (4 points)
+
+1. Quel est le design de cette étude? (0,5) 
+
+2. Comment définiriez vous un design d'étude longitudinal retrospectif? Citer un avantage et un inconvénient majeurs **spécifiquement** liés à la réalisation d’une étude longitudinale rétrospective. (2)
+
+<!-- Déf 1, ex 0.5 + 0.5 -->
+
+3. Peut-on estimer une prévalence et/ou une incidence de l’inflammation bronchique chez l’enfant avec cette étude? Si non, pourquoi? Si oui, la validité de l’estimation est soumise à quelle condition majeure? Faire le(s) calcul(s) numérique(s) si possible. (1,5)
+
+## Partie 2.2 (6 points)
+
+La **Table 2** présente la relation entre le niveau de FeNO et différentes allergies pour les individus de la cohorte. Y sont présentées les associations non ajustées entre FeNO et allergie, puis ce sont les associations ajustées sur le sexe et les antécédents maternels asthme (oui/non).
+
+```{r}
+tab <- tribble(~allergie, ~statut, ~n, ~beta_uni, ~p_uni, ~beta_adj, ~p_adj,
+                 "Acariens", "Non allergique", 151, "ref", "-", "ref", "-",
+                 " ", "Allergique", 99, "13.5", "<0.0001", "13.8", "<0.0001",
+                 "Chien", "Non allergique", 237, "ref", "-", "ref", "-",
+                 " ", "Allergique", 13, "27", "<0.0001", "15.2", "0.01",
+                 "Souris", "Non allergique", 241, "ref", "-", "ref", "-",
+                 " ", "Allergique", 6, "20.2", "0.02", "-0.2", "0.98",
+                 "Graminées", "Non allergique", 206, "ref", "-", "-", "-",
+                 " ", "Allergique", 41, "2.6", "0.30", "-", "-")
+
+colnames(tab) <- c("Allergie", "Statut", "N", "Beta\nunivarié", "p", "Beta\najusté", "p")
+
+pander(tab, caption = "FeNO en fonction de la réponse allergique à divers allergènes respiratoires.")
+
+```
+
+4. Pour produire cette table des modèles de régression ont été utilisés, selon vous de quel type de modèle s'agit-il? Pourquoi? (1)
+
+<!-- Régression linéraire, Y continu -->
+
+5. Ecrivez l'équation de ce modèle (analyse de la relation entre FeNO et statut allergique) et expliquez à quoi correspondent les différents paramètres et comment les interpréter. (3)
+
+<!-- 
+E(Y) = A + B*X
+Y = outcome
+E(Y) = espérance de Y
+A = intercept
+X = expo
+B = beta/pente
+--> 
+
+<!-- Categorielle/binaire -->
+
+6. Que pouvez-vous dire au sujet de l'association entre FeNO et allergies à la souris? Comment pourrait-on expliquer cela? (1)
+
+<!-- devient NS après ajustement (0.5) sexe ou antécédant maternel = facteur de confusion -->
+
+7. Que sont les résidus d'un modèle de régression linéaire? Quelles propriétés doivent-ils satisfaire? (1)
+
+<!-- écart entre obs et modele (0.5), distribution normale (0.25), moyenne = 0 (0.25) (variance contsante bonus 0.25) -->
+
+## Partie 2.3 (2 points)
+
+La partie suivante s'intéresse à l'analyse du niveau de FeNO en fonction de la quantité d'accariens dans les poussières du domicile de la personne mesurée en $\mu g_{accarien}/ g_{poussière}$. Les niveaux de FeNO en fonction de la quantité d’acariens sont représentés en **Figure 1**.
+
+```{r fig.height = 3, fig.width = 4, fig.cap = "Mesure des niveaux de FeNO en fonction de l'exposition aux acariens"}
+ggplot(allergen_data, aes(x = exposure,
+                          y = feno_level)) +
+  geom_point() +
+  ylab(expression(FeNO~(ppb))) +
+  xlab(Acariens~(mu~g/g)) +
+  see::theme_modern()
+```
+
+Voici la sortie du modèle de régression du niveau de FeNO en fonction de la quantité d’acariens mesurée dans les poussières:
+
+```{r}
+summary(lm(feno_level ~ exposure, data = allergen_data))
+```
+
+$\newline$
+
+8. Comment interprétez-vous le lien entre exposition aux acariens et niveau moyen de FeNO? (1,5) 
+
+<!-- association postivie et significative. +1 niveau de pheno par microgramme d'accarien en plus -->
+
+9. Selon ce modèle quelle est la formule à appliquer pour calculer le niveau moyen de FeNO pour une exposition aux accariens de 15,2 $\mu g/g$? (0,5)
+
+<!-- feno(expo = 15) =  -->
+
+## Partie 2.4 (3 points)
+
+10. Dans quelle situation préférera-t-on utiliser un modèle de régression logistique plutôt qu'un modèle de régression linéaire? Donnez un exemple d'étude où l'on pourrait utiliser une régression logistique. (1)
+
+<!-- Y binaire 0.5, exemple ok 0.5 -->
+
+11. Les beta d'une régression logistique sont-ils directement interprétables? Quelle transformation faut-il leur appliquer? Quel est le terme obtenu? Comment les interprète-t-on? (2) 
+
+<!-- 
+exp(beta) 0.5
+un odds ratio 0.5
+facteur de risque//pas d'effet//protecteur 1
+-->
+
+# Références
+
+

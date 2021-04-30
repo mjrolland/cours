@@ -1,5 +1,5 @@
 ---
-title: "b"
+title: "gitr"
 output:
   xaringan::moon_reader:
     css: [xaringan-themer.css, my-css-git-beginners.css]

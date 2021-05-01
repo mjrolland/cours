@@ -2,6 +2,7 @@
 title: "gitr"
 output:
   xaringan::moon_reader:
+    #self_contained: true
     css: [xaringan-themer.css, my-css-git-beginners.css]
     lib_dir: libs
     nature:
@@ -124,6 +125,12 @@ Illustration from [happygitwithr](https://happygitwithr.com/)
 
 `repository...` set of files and folders tracked by git (aka **repo**)  
 `remote.......` online backup of your repo  
+`.git.........` folder that contains all the information that is necessary for your project in version control   <!-- and all the information about commits, remote repository address  It also contains a log that stores your commit history so that you can roll back to history. -->  
+`.gitignore...` file that specifies intentionally untracked files to ignore
+
+--
+
+![](babylab-folder.png)
 
 ---
 
@@ -211,17 +218,17 @@ Allow for trial and error while maintaining a functional version
 
 ---
 
+# Branches
+
+![](octopus.jpeg)
+
+---
+
 # Vocabulary
 
 `master branch...` clean and functional version of the code  
 `merge...........` including modifications from a dev branch to the master branch  
 `conflict........` happens when lines of code differ between two merged branches  
-
----
-
-# Branches
-
-![](octopus.jpeg)
 
 ---
 

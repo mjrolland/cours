@@ -37,27 +37,24 @@ Notes for next time:
  &lt;!-- Disclaimer I am not an expert, I am not a software developer, I am a statistician in a research lab, I mainly do data analysis and paper writing --&gt;
 
 * Version control system 
-* Repository (repo) = data, figures, reports, and... source code 
+&lt;!-- Most popular version control control system; Like the word track change option but 10 times more powerful --&gt;
+&lt;!-- Its original purpose was to help groups of developers work collaboratively on big software projects. --&gt;
+&lt;!-- developed by Linus Torvald the developer of Linux, developed git to be able to develop linux --&gt;
+* Repository (repo) = data, figures, reports, and... source code  &lt;!-- Records changes made over time in a special data base called a repository --&gt;
+&lt;!-- It enables you to see your project history and who has made change when and why --&gt;
+&lt;!-- And if you make a mistake you can always switch your project back to an earlier state --&gt;
 * Collaboration &lt;!-- utile même pour soi même quand on travaille avec plusieurs ordi --&gt;
 * Sharing code &lt;!-- de plus en plus utile dans la communauté scientifique --&gt;
 * Free and open source
 * Command line tool but fully integrated in Rstudio
-
-&lt;!-- Most popular version control control system --&gt;
-&lt;!-- Records changes made over time in a special data base called a repository --&gt;
-&lt;!-- Like the word track change option but 10 times more powerful --&gt;
-
-&lt;!-- Its original purpose was to help groups of developers work collaboratively on big software projects. --&gt;
-&lt;!-- developed by Linus Torvald the developer of Linux, developed git to be able to develop linux --&gt;
-
-&lt;!-- It enables you to see your project history and who has made change when and why --&gt;
-&lt;!-- And if you make a mistake you can always switch your project back to an earlier state --&gt;
 
 --
 
 # GitHub / GitLab
 
 * Online hosting platforms for Git-based projects
+&lt;!-- They provide a home for your Git-based projects on the internet. --&gt;
+&lt;!-- Like DropBox but to the power 10 --&gt;
 * Remote repo  &lt;!-- very useful even when working solo on a project --&gt;
 * User friendly web interface &lt;!-- Especially useful when sharing code --&gt;
 * Special features
@@ -66,10 +63,6 @@ Notes for next time:
   * Create website
   * etc
 
-&lt;!-- ![](github_logo-sm.png) ![](gitlab-logo-sm.png) --&gt;
-
-&lt;!-- They provide a home for your Git-based projects on the internet. --&gt;
-&lt;!-- Like DropBox but to the power 10 --&gt;
 &lt;!-- It allows other people to see your stuff, sync up with you, and perhaps even make changes. --&gt;
 &lt;!-- Github is the most popular and gitlab is often used academically for historical reasons --&gt;
 
@@ -77,18 +70,18 @@ Notes for next time:
 
 # Why use Git?
 
-* Reproducibility &lt;!-- File history --&gt;
+* Reproducibility
+&lt;!-- For individual researchers, Git provides a powerful way to track and compare versions, retrace errors, explore new approaches in a structured manner, while maintaining a full audit trail. For larger collaborative efforts, Git and Git hosting services make it possible for everyone to work asynchronously and merge their contributions at any time, all the while maintaining a complete authorship trail. --&gt;
 * Security &lt;!-- online copy of your code --&gt;
 * Collaboration &lt;!-- more and more common in modern data science --&gt;
 * Sharing/Open science &lt;!-- for us we can easily share our publication code --&gt; 
 * Very well integrated in Rstudio &lt;!-- which removes a lot of the initial hassle/hurdles historically associated with git --&gt;
 
-  
 --
 
 BUT
 
-* **installation and initial configuration can be complicated**
+* **installation and initial configuration can be complicated** (=&gt; [happygitwithr](https://happygitwithr.com/))
 * **it is an extra layer of complexity**
 
 ---
@@ -98,6 +91,8 @@ BUT
 &lt;!-- A central server, several computers --&gt;
 
 ![](collaboration_small.png)
+
+&lt;!-- With Git, all contributors have a copy of the repo, with all files and the full history. It is typical to stay in sync through the use of a central remote repo, such as GitHub. Hosted remotes like GitHub also provide access to the repo through a web browser. --&gt;
 
 Illustration from [happygitwithr](https://happygitwithr.com/)
 
@@ -109,10 +104,6 @@ Illustration from [happygitwithr](https://happygitwithr.com/)
 `remote.......` online backup of your repo  
 `.git.........` folder that contains all the information that is necessary for your project in version control   &lt;!-- and all the information about commits, remote repository address  It also contains a log that stores your commit history so that you can roll back to history. --&gt;  
 `.gitignore...` file that specifies intentionally untracked files to ignore
-
---
-
-![](babylab-folder.png)
 
 ---
 
@@ -159,6 +150,9 @@ Get collaborators' modifications on your local repo
 
 ![](commits.png)
 
+&lt;!-- Partial commit history for our iris example, highlighting diffs, commit messages,
+SHAs, and tags --&gt;
+
 &lt;br/&gt;
 &lt;br/&gt;
 &lt;br/&gt;
@@ -183,6 +177,9 @@ Illustration from [happygitwithr](https://happygitwithr.com/)
 
 ![](push_pull.png)
 &lt;br/&gt;
+
+&lt;!-- One contributor has made two new commits and updates the master copy on
+GitHub with a push. Another contributor stays up-to-date with a pull from GitHub. --&gt;
 
 --
 
@@ -233,10 +230,6 @@ You should
 --
 
 * Pull often &lt;!-- to keep your local machine as close to the remote repository as possible --&gt;
-
---
-
-* Push infrequently
 
 --
 
@@ -292,11 +285,15 @@ ref: [Rules for Good Git Hygiene](https://betterprogramming.pub/six-rules-for-go
 
 # How I use Git
 
+`~/projects`
+
 ![](project-folder.png)
 
 ---
 
 # How I use Git
+
+`~/projects/babylab`
 
 ![](babylab-folder.png)
 
@@ -304,11 +301,15 @@ ref: [Rules for Good Git Hygiene](https://betterprogramming.pub/six-rules-for-go
 
 # How I use Git
 
+`~/projects/babylab/.gitignore`
+
 ![](gitignore.png)
 
 ---
 
 # How I use Git
+
+`www.gitlab.com`
 
 ![](my-gitlab.png)
 

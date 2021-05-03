@@ -62,7 +62,6 @@ style_mono_accent(
 <!-- It enables you to see your project history and who has made change when and why -->
 <!-- And if you make a mistake you can always switch your project back to an earlier state -->
 * Collaboration <!-- utile même pour soi même quand on travaille avec plusieurs ordi -->
-* Sharing code <!-- de plus en plus utile dans la communauté scientifique -->
 * Free and open source
 * Command line tool but fully integrated in Rstudio
 
@@ -86,24 +85,6 @@ style_mono_accent(
 
 ---
 
-# Why use Git?
-
-* Reproducibility
-<!-- For individual researchers, Git provides a powerful way to track and compare versions, retrace errors, explore new approaches in a structured manner, while maintaining a full audit trail. For larger collaborative efforts, Git and Git hosting services make it possible for everyone to work asynchronously and merge their contributions at any time, all the while maintaining a complete authorship trail. -->
-* Security <!-- online copy of your code -->
-* Collaboration <!-- more and more common in modern data science -->
-* Sharing/Open science <!-- for us we can easily share our publication code --> 
-* Very well integrated in Rstudio <!-- which removes a lot of the initial hassle/hurdles historically associated with git -->
-
---
-
-BUT
-
-* **installation and initial configuration can be complicated** (=> [happygitwithr](https://happygitwithr.com/))
-* **it is an extra layer of complexity**
-
----
-
 # Architecture
 
 <!-- A central server, several computers -->
@@ -114,6 +95,25 @@ BUT
 
 Illustration from [happygitwithr](https://happygitwithr.com/)
 
+
+---
+
+# Why use Git and a hosting platform?
+
+* Reproducibility
+<!-- One of the corner stones of reproducibility. For individual researchers, Git provides a powerful way to track and compare versions, retrace errors, explore new approaches in a structured manner. For larger collaborative efforts, Git and Git hosting services make it possible for everyone to work asynchronously and merge their contributions at any time, all the while maintaining a complete authorship trail. -->
+* Security <!-- online copy of your code -->
+* Collaboration <!-- more and more common in modern data science -->
+* Sharing/Open science <!-- for us we can easily share our publication code --> 
+* Very well integrated in Rstudio <!-- which removes a lot of the initial hassle/hurdles historically associated with git -->
+
+--
+
+BUT
+
+* **installation and initial configuration can be complicated** (=> [happygitwithr](https://happygitwithr.com/)) <!-- this only needs to be done once --> 
+* **it is an extra layer of complexity** <!-- may not always be worth switching to git --> 
+
 ---
 
 # Vocabulary
@@ -122,43 +122,6 @@ Illustration from [happygitwithr](https://happygitwithr.com/)
 `remote.......` online backup of your repo  
 `.git.........` folder that contains all the information that is necessary for your project in version control   <!-- and all the information about commits, remote repository address  It also contains a log that stores your commit history so that you can roll back to history. -->  
 `.gitignore...` file that specifies intentionally untracked files to ignore
-
----
-
-# Workflow
-
-<!-- git developed as a command line tool but you can (nearly) never use them when working in Rstudio -->
-
---
-
-Create a repo  / get a local copy of an existing repo 
-
-* `git init`
-* `git clone` 
-
---
-
-Take snapshots of the local repo modifications (aka staging)
-
-* `git add`
-
---
-
-Save modifications locally
-
-* `git commit`
-
---
-
-Send local modifications to remote
-
-* `git push`
-
---
-
-Get collaborators' modifications on your local repo
-
-* `git pull`
 
 ---
 
@@ -180,17 +143,6 @@ Illustration from [happygitwithr](https://happygitwithr.com/)
 
 ---
 
-# Vocabulary
-
-`hash...` unique identifier  
-`diff...` difference between two versions of the same file  
-
---
-
-**Important to take time on commit comments!!**
-
----
-
 # Push - Pull
 
 ![](push_pull.png)
@@ -206,6 +158,26 @@ GitHub with a push. Another contributor stays up-to-date with a pull from GitHub
 <br/>
 
 Illustration from [happygitwithr](https://happygitwithr.com/)
+
+---
+
+# Vocabulary
+
+<!-- git developed as a command line tool but you can (nearly) never use them when working in Rstudio -->
+
+Main actions:
+
+`init.....` create a repo  
+`clone....` get a local copy of an existing repo   
+`add......` take snapshots of the local repo modifications (aka staging)  
+`commit...` save modifications locally  
+`push.....` send local modifications to remote  
+`pull.....` get collaborators' modifications on your local repo  
+
+Additionnal vocabulary:
+
+`hash.....` unique commit identifier  
+`diff.....` difference between two versions of the same file   
 
 ---
 
@@ -243,7 +215,11 @@ You should
 
 --
 
-* Commit frequently <!-- Instead, you should often commit small, single changes with carefully crafted commit messages that tell what the small, discrete change is.  -->
+* Commit frequently <!-- you should often commit small, single changes with carefully crafted commit messages that tell what the small, discrete change is.  -->
+
+--
+
+* Carefully write your commit comments
 
 --
 
@@ -253,7 +229,6 @@ You should
 
 * Pull before you push  <!--Doing so will ensure that your local copy is in sync with the remote repository.  You can do this as often as you like, and should do it frequently — at least once a day if not more.-->
 
-<br/>
 <br/>
 <br/>
 <br/>
@@ -305,6 +280,8 @@ ref: [Rules for Good Git Hygiene](https://betterprogramming.pub/six-rules-for-go
 
 `~/projects`
 
+--
+
 ![](project-folder.png)
 
 ---
@@ -313,6 +290,8 @@ ref: [Rules for Good Git Hygiene](https://betterprogramming.pub/six-rules-for-go
 
 `~/projects/babylab`
 
+--
+
 ![](babylab-folder.png)
 
 ---
@@ -320,6 +299,8 @@ ref: [Rules for Good Git Hygiene](https://betterprogramming.pub/six-rules-for-go
 # How I use Git
 
 `~/projects/babylab/.gitignore`
+
+--
 
 ![](gitignore.png)
 
